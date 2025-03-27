@@ -172,3 +172,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# MySelf
+data/
+save_models/
+loss_log.txt
