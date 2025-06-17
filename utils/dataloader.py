@@ -14,7 +14,7 @@ class ToDiscreteTensor:
 
 class MNISTDataLoader:
 
-    def __init__(self, batch_size=32, transform_mode="[0,1]", shuffle=True):
+    def __init__(self, batch_size=32, transform_mode="[0,1]", shuffle=False):
         self.batch_size = batch_size
         self.shuffle = shuffle
         if transform_mode == "[0,1]":
@@ -44,42 +44,5 @@ class MNISTDataLoader:
 
         dataloader = DataLoader(
             dataset, batch_size=self.batch_size, shuffle=self.shuffle
-        )
-        return dataloader
-
-
-class Wikitext2DataLoader:
-
-    def __init__(self, batch_size=32, model_name="bert-base-uncased", shuffle=True):
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModel.from_pretrained(model_name)
-        self.dataset = load_dataset("wikitext", "wikitext-2-raw-v1")
-
-    def tokenize_function(self, examples):
-        return self.tokenizer(
-            examples["text"],
-            padding="max_length",  # padding all sentence to max length
-            truncation=True,
-            max_length=128,
-            return_tensors="pt",
-        )
-
-    def collate_batch(self, batch):
-        input_ids = torch.stack([torch.tensor(item["input_ids"]) for item in batch])
-        with torch.no_grad():
-            embeddings = self.model.get_input_embeddings()(input_ids)
-        return embeddings
-
-    def get_dataloader(self, split="train"):
-        tokenized_dataset = self.dataset[split].map(
-            self.tokenize_function, batched=True
-        )
-        dataloader = DataLoader(
-            tokenized_dataset,
-            batch_size=self.batch_size,
-            shuffle=self.shuffle,
-            collate_fn=self.collate_batch,
         )
         return dataloader

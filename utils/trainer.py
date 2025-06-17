@@ -65,29 +65,34 @@ class Trainer:
             with open(self.log_file, "a") as f:
                 f.write(f"{epoch},{idx},{loss_value}\n")
 
-    def train_ar(self):
+    def train_ar_MNIST(self):
         for epoch in range(self.epochs):
             print(f"### epoch {epoch} ###")
-            self._train_ar_epoch(epoch)
+            self._train_ar_MNIST_epoch(epoch)
 
-    def _train_ar_epoch(self, epoch):
+    def _train_ar_MNIST_epoch(self, epoch):
         self.model.train()
-        for idx, (inputs, _) in enumerate(self.dataloader):
-            inputs, masks, labels = self.autoregressive_transform(inputs)
+        for idx, (inputs, labels) in enumerate(self.dataloader):
 
-            inputs = inputs.to(self.device)
-            masks = masks.to(self.device)
-            labels = labels.to(self.device)
+            inputs = inputs.to(self.device).reshape(inputs.shape[0], -1)
+            labels = inputs.clone().long()
+            inputs[:, 1:] = inputs[:, :-1].clone()
+            inputs[:, 0] = 0
+            inputs = inputs.reshape(inputs.shape[0], -1, 1).float()
+            (h_0, c_0) = self.model.get_init_hidden(inputs.shape[0])
+            h_0 = h_0.to(self.device)
+            c_0 = c_0.to(self.device)
 
             self.optimizer.zero_grad()
-            preds = self.model(inputs, masks)
-
+            preds, _ = self.model(inputs, (h_0, c_0))
+            preds = preds.permute(0, 2, 1)
             loss = self.loss_fn(preds, labels)
             loss.backward()
             self.optimizer.step()
 
             loss_value = loss.item()
-            print(f"loss:{loss_value}")
+            if idx % 10 == 0:
+                print(f"{idx} loss:{loss_value}")
 
             # Save loss to file
             with open(self.log_file, "a") as f:
